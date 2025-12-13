@@ -1,0 +1,106 @@
+### Customer Service API Requests (Port 8081)
+
+### Create Customer
+POST http://localhost:8081/customers
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "555-0101",
+  "address": "123 Main St, City"
+}
+
+### Get All Customers
+GET http://localhost:8081/customers
+
+### Get Customer by ID
+GET http://localhost:8081/customers/1
+
+### Update Customer
+PUT http://localhost:8081/customers/1
+Content-Type: application/json
+
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@example.com",
+  "phone": "555-0199",
+  "address": "456 New St, City"
+}
+
+### Delete Customer
+DELETE http://localhost:8081/customers/1
+
+###############################################
+### Account Service API Requests (Port 8082)
+###############################################
+
+### Create Account
+POST http://localhost:8082/accounts
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "accountType": "SAVINGS",
+  "initialBalance": 1000.00
+}
+
+### Get All Accounts
+GET http://localhost:8082/accounts
+
+### Get Account by ID
+GET http://localhost:8082/accounts/1
+
+### Get Accounts by Customer ID
+GET http://localhost:8082/accounts/customer/1
+
+### Update Account
+PUT http://localhost:8082/accounts/1
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "accountType": "CHECKING",
+  "initialBalance": 1000.00
+}
+
+### Delete Account
+DELETE http://localhost:8082/accounts/1
+
+###############################################
+### Transaction Service API Requests (Port 8083)
+###############################################
+
+### Deposit
+POST http://localhost:8083/transactions/deposit
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "amount": 500.00,
+  "description": "Salary deposit"
+}
+
+### Withdraw
+POST http://localhost:8083/transactions/withdraw
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "amount": 100.00,
+  "description": "ATM withdrawal"
+}
+
+### Transfer
+POST http://localhost:8083/transactions/transfer
+Content-Type: application/json
+
+{
+  "fromAccountId": 1,
+  "toAccountId": 2,
+  "amount": 250.00,
+  "description": "Payment to friend"
+}
+
+### Get Transactions by Account ID
+GET http://localhost:8083/transactions/account/1
