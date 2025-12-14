@@ -29,8 +29,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/customers/user/**").permitAll()  // Internal service calls
+                .requestMatchers(HttpMethod.GET, "/customers/{id}").permitAll()  // Internal service calls (account validation)
+                .requestMatchers(HttpMethod.POST, "/customers").permitAll()  // Registration creates customer
                 .requestMatchers(HttpMethod.GET, "/customers/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/customers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/customers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/customers/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

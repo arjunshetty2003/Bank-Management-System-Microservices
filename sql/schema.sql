@@ -11,7 +11,8 @@ CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL
+    role VARCHAR(50) NOT NULL,
+    transaction_pin VARCHAR(255)
 );
 
 -- Default users (passwords are BCrypt hashed: admin123, user123)
@@ -24,10 +25,12 @@ INSERT INTO users (username, password, role) VALUES
 
 CREATE TABLE customers (
     customer_id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(50) NOT NULL,
-    address VARCHAR(500) NOT NULL
+    address VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'
 );
 
 -- Sample customers
@@ -45,7 +48,9 @@ CREATE TABLE accounts (
     account_number VARCHAR(50) NOT NULL UNIQUE,
     account_type VARCHAR(20) NOT NULL,
     balance DECIMAL(19, 2) NOT NULL DEFAULT 0.00,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP
 );
 
 CREATE INDEX idx_accounts_customer_id ON accounts(customer_id);

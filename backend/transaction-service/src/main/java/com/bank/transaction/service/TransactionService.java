@@ -1,6 +1,10 @@
 package com.bank.transaction.service;
 
-import com.bank.transaction.dto.*;
+import com.bank.transaction.dto.AccountDto;
+import com.bank.transaction.dto.DepositRequest;
+import com.bank.transaction.dto.TransferByAccountNumberRequest;
+import com.bank.transaction.dto.TransferRequest;
+import com.bank.transaction.dto.WithdrawRequest;
 import com.bank.transaction.entity.Transaction;
 import com.bank.transaction.entity.Transaction.TransactionType;
 import com.bank.transaction.exception.AccountNotFoundException;
@@ -22,9 +26,11 @@ import java.util.List;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final WebClient accountServiceWebClient;
+    private final WebClient authServiceWebClient;
 
     public Transaction deposit(DepositRequest request) {
         AccountDto account = getAccount(request.getAccountId());
+        validateAccountStatus(account);
         
         updateAccountBalance(request.getAccountId(), request.getAmount(), true);
         
@@ -39,7 +45,11 @@ public class TransactionService {
     }
 
     public Transaction withdraw(WithdrawRequest request) {
+        // Validate PIN first
+        validatePin(request.getUsername(), request.getPin());
+        
         AccountDto account = getAccount(request.getAccountId());
+        validateAccountStatus(account);
         
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for withdrawal");
@@ -64,6 +74,8 @@ public class TransactionService {
         
         AccountDto fromAccount = getAccount(request.getFromAccountId());
         AccountDto toAccount = getAccount(request.getToAccountId());
+        validateAccountStatus(fromAccount);
+        validateAccountStatus(toAccount);
         
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for transfer");
@@ -75,6 +87,37 @@ public class TransactionService {
         Transaction transaction = Transaction.builder()
                 .fromAccountId(request.getFromAccountId())
                 .toAccountId(request.getToAccountId())
+                .amount(request.getAmount())
+                .transactionType(TransactionType.TRANSFER)
+                .description(request.getDescription() != null ? request.getDescription() : "Transfer")
+                .build();
+        
+        return transactionRepository.save(transaction);
+    }
+
+    public Transaction transferByAccountNumber(TransferByAccountNumberRequest request) {
+        // Validate PIN first
+        validatePin(request.getUsername(), request.getPin());
+        
+        AccountDto fromAccount = getAccount(request.getFromAccountId());
+        AccountDto toAccount = getAccountByNumber(request.getToAccountNumber());
+        validateAccountStatus(fromAccount);
+        validateAccountStatus(toAccount);
+        
+        if (fromAccount.getAccountId().equals(toAccount.getAccountId())) {
+            throw new IllegalArgumentException("Cannot transfer to the same account");
+        }
+        
+        if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance for transfer");
+        }
+        
+        updateAccountBalance(request.getFromAccountId(), request.getAmount(), false);
+        updateAccountBalance(toAccount.getAccountId(), request.getAmount(), true);
+        
+        Transaction transaction = Transaction.builder()
+                .fromAccountId(request.getFromAccountId())
+                .toAccountId(toAccount.getAccountId())
                 .amount(request.getAmount())
                 .transactionType(TransactionType.TRANSFER)
                 .description(request.getDescription() != null ? request.getDescription() : "Transfer")
@@ -110,5 +153,41 @@ public class TransactionService {
                     response -> Mono.error(new RuntimeException("Failed to update account balance")))
                 .bodyToMono(AccountDto.class)
                 .block();
+    }
+
+    private AccountDto getAccountByNumber(String accountNumber) {
+        return accountServiceWebClient.get()
+                .uri("/accounts/number/{accountNumber}", accountNumber)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                    response -> Mono.error(new AccountNotFoundException("Account not found: " + accountNumber)))
+                .bodyToMono(AccountDto.class)
+                .block();
+    }
+
+    private void validatePin(String username, String pin) {
+        String response = authServiceWebClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/auth/validate-pin")
+                        .queryParam("username", username)
+                        .queryParam("pin", pin)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                    r -> Mono.error(new SecurityException("Invalid PIN")))
+                .bodyToMono(String.class)
+                .block();
+    }
+
+    private void validateAccountStatus(AccountDto account) {
+        if (account.getStatus() == null) {
+            return; // Assume active if status not set
+        }
+        if ("FROZEN".equalsIgnoreCase(account.getStatus())) {
+            throw new IllegalStateException("Account " + account.getAccountNumber() + " is frozen. Transactions are not allowed.");
+        }
+        if ("CLOSED".equalsIgnoreCase(account.getStatus())) {
+            throw new IllegalStateException("Account " + account.getAccountNumber() + " is closed. Transactions are not allowed.");
+        }
     }
 }

@@ -2,9 +2,11 @@ package com.bank.auth.controller;
 
 import com.bank.auth.dto.AuthRequest;
 import com.bank.auth.dto.AuthResponse;
+import com.bank.auth.dto.FullRegistrationRequest;
 import com.bank.auth.entity.User;
 import com.bank.auth.repository.UserRepository;
 import com.bank.auth.security.JwtUtil;
+import com.bank.auth.service.RegistrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RegistrationService registrationService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody AuthRequest request) {
@@ -37,6 +40,16 @@ public class AuthController {
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse(token, user.getUsername(), user.getRole()));
+    }
+
+    @PostMapping("/register-full")
+    public ResponseEntity<?> registerFull(@Valid @RequestBody FullRegistrationRequest request) {
+        try {
+            AuthResponse response = registrationService.registerFull(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/login")
@@ -63,5 +76,37 @@ public class AuthController {
             return ResponseEntity.ok().body("Token is valid");
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+    }
+
+    @PostMapping("/validate-pin")
+    public ResponseEntity<?> validatePin(@RequestParam String username, @RequestParam String pin) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        
+        if (user.getTransactionPin() == null || !passwordEncoder.matches(pin, user.getTransactionPin())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid PIN");
+        }
+        
+        return ResponseEntity.ok().body("PIN valid");
+    }
+
+    @PostMapping("/setup-admin")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> setupAdmin() {
+        if (userRepository.existsByUsername("admin")) {
+            userRepository.deleteByUsername("admin");
+        }
+        
+        User admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder.encode("admin123"))
+                .role("ADMIN")
+                .build();
+        
+        userRepository.save(admin);
+        return ResponseEntity.ok("Admin user created with username: admin, password: admin123");
     }
 }

@@ -1,6 +1,7 @@
 package com.bank.transaction.controller;
 
 import com.bank.transaction.dto.DepositRequest;
+import com.bank.transaction.dto.TransferByAccountNumberRequest;
 import com.bank.transaction.dto.TransferRequest;
 import com.bank.transaction.dto.WithdrawRequest;
 import com.bank.transaction.entity.Transaction;
@@ -33,6 +34,11 @@ public class TransactionController {
     @PostMapping("/transfer")
     public ResponseEntity<Transaction> transfer(@Valid @RequestBody TransferRequest request) {
         return new ResponseEntity<>(transactionService.transfer(request), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/transfer-by-account")
+    public ResponseEntity<Transaction> transferByAccountNumber(@Valid @RequestBody TransferByAccountNumberRequest request) {
+        return new ResponseEntity<>(transactionService.transferByAccountNumber(request), HttpStatus.CREATED);
     }
 
     @GetMapping("/account/{accountId}")

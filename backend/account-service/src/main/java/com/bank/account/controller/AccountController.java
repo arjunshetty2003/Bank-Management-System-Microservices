@@ -45,9 +45,18 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
-        accountService.deleteAccount(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Account> deleteAccount(@PathVariable Long id) {
+        return ResponseEntity.ok(accountService.closeAccount(id));
+    }
+
+    @PostMapping("/{id}/close")
+    public ResponseEntity<Account> closeAccount(@PathVariable Long id) {
+        return ResponseEntity.ok(accountService.closeAccount(id));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Account> updateAccountStatus(@PathVariable Long id, @RequestParam String status) {
+        return ResponseEntity.ok(accountService.updateAccountStatus(id, status));
     }
 
     @PostMapping("/{id}/deposit")
@@ -58,5 +67,15 @@ public class AccountController {
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<Account> withdraw(@PathVariable Long id, @RequestParam BigDecimal amount) {
         return ResponseEntity.ok(accountService.withdraw(id, amount));
+    }
+
+    @GetMapping("/user/{username}")
+    public ResponseEntity<List<Account>> getAccountsByUsername(@PathVariable String username) {
+        return ResponseEntity.ok(accountService.getAccountsByUsername(username));
+    }
+
+    @GetMapping("/number/{accountNumber}")
+    public ResponseEntity<Account> getAccountByNumber(@PathVariable String accountNumber) {
+        return ResponseEntity.ok(accountService.getAccountByNumber(accountNumber));
     }
 }

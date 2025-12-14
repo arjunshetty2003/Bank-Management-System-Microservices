@@ -1,6 +1,7 @@
 package com.bank.account.service;
 
 import com.bank.account.dto.AccountRequest;
+import com.bank.account.dto.CustomerResponse;
 import com.bank.account.entity.Account;
 import com.bank.account.exception.AccountNotFoundException;
 import com.bank.account.exception.CustomerNotFoundException;
@@ -61,11 +62,45 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public void deleteAccount(Long id) {
-        if (!accountRepository.existsById(id)) {
-            throw new AccountNotFoundException("Account not found with id: " + id);
+    public Account closeAccount(Long id) {
+        Account account = getAccountById(id);
+        if (account.getStatus() == Account.AccountStatus.CLOSED) {
+            throw new IllegalStateException("Account is already closed");
         }
-        accountRepository.deleteById(id);
+        if (account.getBalance().compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException("Cannot close account with remaining balance. Please withdraw or transfer funds first.");
+        }
+        account.setStatus(Account.AccountStatus.CLOSED);
+        account.setClosedAt(java.time.LocalDateTime.now());
+        return accountRepository.save(account);
+    }
+
+    public void deleteAccount(Long id) {
+        // Keep for backward compatibility but use soft delete
+        closeAccount(id);
+    }
+
+    public Account updateAccountStatus(Long id, String status) {
+        Account account = getAccountById(id);
+        Account.AccountStatus newStatus;
+        try {
+            newStatus = Account.AccountStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status. Must be ACTIVE, CLOSED, or FROZEN");
+        }
+        
+        // If closing, check balance
+        if (newStatus == Account.AccountStatus.CLOSED && account.getBalance().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException("Cannot close account with remaining balance");
+        }
+        
+        account.setStatus(newStatus);
+        if (newStatus == Account.AccountStatus.CLOSED) {
+            account.setClosedAt(java.time.LocalDateTime.now());
+        } else {
+            account.setClosedAt(null);
+        }
+        return accountRepository.save(account);
     }
 
     public Account deposit(Long accountId, BigDecimal amount) {
@@ -81,6 +116,31 @@ public class AccountService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         return accountRepository.save(account);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Account> getAccountsByUsername(String username) {
+        // Get customer ID from customer service by username
+        Long customerId = customerServiceWebClient.get()
+                .uri("/customers/user/{username}", username)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                    response -> Mono.error(new CustomerNotFoundException("Customer not found for user: " + username)))
+                .bodyToMono(CustomerResponse.class)
+                .map(CustomerResponse::getCustomerId)
+                .block();
+        
+        // Return active and frozen accounts (not closed)
+        List<Account> accounts = accountRepository.findByCustomerId(customerId);
+        return accounts.stream()
+                .filter(a -> a.getStatus() != Account.AccountStatus.CLOSED)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Account getAccountByNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
     }
 
     private void validateCustomerExists(Long customerId) {

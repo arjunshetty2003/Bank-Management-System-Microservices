@@ -20,4 +20,10 @@ public class WithdrawRequest {
     private BigDecimal amount;
 
     private String description;
+
+    @NotNull(message = "Username is required")
+    private String username;
+
+    @NotNull(message = "PIN is required")
+    private String pin;
 }

@@ -1,30 +1,73 @@
 # Bank Management System
 
-A microservices-based banking application with Spring Boot backend and React frontend.
+A microservices-based banking simulator with Spring Boot backend, React frontend, Eureka Service Discovery, and API Gateway.
 
 ## Architecture
 
 ```
-┌─────────────────┐
-│  Auth Service   │
-│    Port 8080    │
-│    auth_db      │
-└────────┬────────┘
-         │ JWT tokens
-         ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│ Customer Service│     │ Account Service │     │Transaction Svc  │
-│    Port 8081    │◄────│    Port 8082    │◄────│    Port 8083    │
-│   customer_db   │     │   account_db    │     │ transaction_db  │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         ▲                      ▲                       ▲
-         └──────────────────────┴───────────────────────┘
-                                │
-                    ┌───────────────────────┐
-                    │   React Frontend      │
-                    │      Port 3000        │
-                    └───────────────────────┘
+                         ┌─────────────────────┐
+                         │   Eureka Server     │
+                         │     Port 8761       │
+                         └──────────┬──────────┘
+                                    │ Service Registry
+        ┌───────────────────────────┼───────────────────────────┐
+        │                           │                           │
+        ▼                           ▼                           ▼
+┌───────────────┐          ┌───────────────┐          ┌───────────────┐
+│ Auth Service  │          │Account Service│          │Transaction Svc│
+│   Port 8080   │          │   Port 8082   │          │   Port 8083   │
+│   auth_db     │          │  account_db   │          │transaction_db │
+└───────────────┘          └───────────────┘          └───────────────┘
+        │                           │                           │
+        │                  ┌───────────────┐                    │
+        │                  │Customer Service│                   │
+        │                  │   Port 8081   │                    │
+        │                  │  customer_db  │                    │
+        │                  └───────────────┘                    │
+        │                           │                           │
+        └───────────────────────────┼───────────────────────────┘
+                                    │
+                         ┌──────────▼──────────┐
+                         │    API Gateway      │
+                         │     Port 8090       │
+                         └──────────┬──────────┘
+                                    │
+                         ┌──────────▼──────────┐
+                         │   React Frontend    │
+                         │     Port 3000       │
+                         └─────────────────────┘
 ```
+
+## Features
+
+### User Features
+- User registration with transaction PIN
+- Multiple bank accounts per user (Savings, Checking, Current)
+- Deposit, Withdraw, Transfer operations
+- PIN verification for sensitive operations
+- Transaction history
+- Account closure (soft delete)
+
+### Admin Features
+- Customer management (CRUD with soft delete)
+- Account management with status control
+- View all transactions
+- Freeze/Unfreeze accounts
+- Activate/Deactivate customers
+
+### Account Status
+| Status | Description |
+|--------|-------------|
+| ACTIVE | Normal operations allowed |
+| FROZEN | All transactions blocked, visible to user with warning |
+| CLOSED | Soft deleted, hidden from user, all transactions blocked |
+
+### Customer Status
+| Status | Description |
+|--------|-------------|
+| ACTIVE | Normal customer |
+| SUSPENDED | Temporarily blocked |
+| INACTIVE | Soft deleted |
 
 ## Prerequisites
 
@@ -37,140 +80,67 @@ A microservices-based banking application with Spring Boot backend and React fro
 ## Database Setup
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres
+psql -U postgres -f sql/schema.sql
+```
 
-# Create databases
+Or manually:
+```sql
 CREATE DATABASE auth_db;
 CREATE DATABASE customer_db;
 CREATE DATABASE account_db;
 CREATE DATABASE transaction_db;
 ```
 
-Or run the full schema:
-```bash
-psql -U postgres -f sql/schema.sql
-```
+## Quick Start
 
-## Backend Setup
-
-### Auth Service (Port 8080)
-```bash
-cd backend/auth-service
-mvn spring-boot:run
-```
-
-### Customer Service (Port 8081)
-```bash
-cd backend/customer-service
-mvn spring-boot:run
-```
-
-### Account Service (Port 8082)
-```bash
-cd backend/account-service
-mvn spring-boot:run
-```
-
-### Transaction Service (Port 8083)
-```bash
-cd backend/transaction-service
-mvn spring-boot:run
-```
-
-## Frontend Setup
+Start services in this order:
 
 ```bash
-cd frontend/bank-frontend
-npm install
-npm run dev
-```
+# 1. Eureka Server (wait for startup)
+cd backend/eureka-server && mvn spring-boot:run
 
-Frontend runs on http://localhost:3000
+# 2. API Gateway
+cd backend/api-gateway && mvn spring-boot:run
+
+# 3. Business Services (can run in parallel)
+cd backend/auth-service && mvn spring-boot:run
+cd backend/customer-service && mvn spring-boot:run
+cd backend/account-service && mvn spring-boot:run
+cd backend/transaction-service && mvn spring-boot:run
+
+# 4. Frontend
+cd frontend/bank-frontend && npm install && npm run dev
+```
 
 ## Service Ports
 
-| Service             | Port | Database       |
-|---------------------|------|----------------|
-| Auth Service        | 8080 | auth_db        |
-| Customer Service    | 8081 | customer_db    |
-| Account Service     | 8082 | account_db     |
-| Transaction Service | 8083 | transaction_db |
-| React Frontend      | 3000 | -              |
+| Service | Port | Database | Description |
+|---------|------|----------|-------------|
+| Eureka Server | 8761 | - | Service Discovery |
+| API Gateway | 8090 | - | Request routing |
+| Auth Service | 8080 | auth_db | Authentication, JWT |
+| Customer Service | 8081 | customer_db | Customer management |
+| Account Service | 8082 | account_db | Account management |
+| Transaction Service | 8083 | transaction_db | Transactions |
+| Frontend | 3000 | - | React UI |
 
-## Default Users
+## URLs
 
-| Username | Password | Role  |
-|----------|----------|-------|
-| admin    | admin123 | ADMIN |
-| user     | user123  | USER  |
-
-## API Endpoints
-
-### Auth Service (8080)
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login and get JWT token
-- `GET /auth/validate` - Validate token
-
-### Customer Service (8081)
-- `POST /customers` - Create customer (ADMIN only)
-- `GET /customers` - Get all customers
-- `GET /customers/{id}` - Get customer by ID
-- `PUT /customers/{id}` - Update customer (ADMIN only)
-- `DELETE /customers/{id}` - Delete customer (ADMIN only)
-
-### Account Service (8082)
-- `POST /accounts` - Create account
-- `GET /accounts` - Get all accounts
-- `GET /accounts/{id}` - Get account by ID
-- `GET /accounts/customer/{customerId}` - Get accounts by customer
-- `PUT /accounts/{id}` - Update account (ADMIN only)
-- `DELETE /accounts/{id}` - Delete account (ADMIN only)
-
-### Transaction Service (8083)
-- `POST /transactions/deposit` - Deposit money
-- `POST /transactions/withdraw` - Withdraw money
-- `POST /transactions/transfer` - Transfer between accounts
-- `GET /transactions/account/{accountId}` - Get transaction history
-
-## Sample API Requests
-
-### Login
-```bash
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-```
-
-### Create Customer (with token)
-```bash
-curl -X POST http://localhost:8081/customers \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{"name":"John Doe","email":"john@example.com","phone":"555-0101","address":"123 Main St"}'
-```
-
-### Deposit
-```bash
-curl -X POST http://localhost:8083/transactions/deposit \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{"accountId":1,"amount":500,"description":"Deposit"}'
-```
+- Frontend: http://localhost:3000
+- Eureka Dashboard: http://localhost:8761
+- API Gateway: http://localhost:8090
 
 ## Tech Stack
 
-### Backend
-- Java 17
-- Spring Boot 3.2
-- Spring Security + JWT
-- Spring Data JPA
-- PostgreSQL
-- Lombok
-- WebClient (inter-service communication)
+**Backend:** Java 17, Spring Boot 3.2, Spring Cloud (Eureka, Gateway), Spring Security, JWT, JPA, PostgreSQL, WebClient
 
-### Frontend
-- React 18
-- React Router 6
-- Axios
-- Vite
+**Frontend:** React 18, React Router 6, Axios, Vite
+
+## Microservices Patterns
+
+- Service Discovery (Eureka)
+- API Gateway
+- Database per Service
+- Inter-service Communication (REST/WebClient)
+- Soft Delete
+- JWT Authentication

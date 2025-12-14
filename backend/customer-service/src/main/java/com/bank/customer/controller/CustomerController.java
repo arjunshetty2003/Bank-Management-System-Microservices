@@ -42,4 +42,14 @@ public class CustomerController {
         customerService.deleteCustomer(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/user/{username}")
+    public ResponseEntity<Customer> getCustomerByUsername(@PathVariable String username) {
+        return ResponseEntity.ok(customerService.getCustomerByUsername(username));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Customer> updateCustomerStatus(@PathVariable Long id, @RequestParam String status) {
+        return ResponseEntity.ok(customerService.updateCustomerStatus(id, status));
+    }
 }

@@ -40,6 +40,11 @@ public class CustomerService {
                 && customerRepository.existsByEmail(customerDetails.getEmail())) {
             throw new DuplicateEmailException("Email already exists: " + customerDetails.getEmail());
         }
+        if (customerDetails.getUsername() != null && !customerDetails.getUsername().equals(customer.getUsername())
+                && customerRepository.existsByUsername(customerDetails.getUsername())) {
+            throw new DuplicateEmailException("Username already linked to another customer: " + customerDetails.getUsername());
+        }
+        customer.setUsername(customerDetails.getUsername());
         customer.setName(customerDetails.getName());
         customer.setEmail(customerDetails.getEmail());
         customer.setPhone(customerDetails.getPhone());
@@ -48,9 +53,25 @@ public class CustomerService {
     }
 
     public void deleteCustomer(Long id) {
-        if (!customerRepository.existsById(id)) {
-            throw new CustomerNotFoundException("Customer not found with id: " + id);
+        // Soft delete - set status to INACTIVE
+        Customer customer = getCustomerById(id);
+        customer.setStatus(Customer.CustomerStatus.INACTIVE);
+        customerRepository.save(customer);
+    }
+
+    public Customer updateCustomerStatus(Long id, String status) {
+        Customer customer = getCustomerById(id);
+        try {
+            customer.setStatus(Customer.CustomerStatus.valueOf(status.toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status. Must be ACTIVE, INACTIVE, or SUSPENDED");
         }
-        customerRepository.deleteById(id);
+        return customerRepository.save(customer);
+    }
+
+    @Transactional(readOnly = true)
+    public Customer getCustomerByUsername(String username) {
+        return customerRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomerNotFoundException("Customer not found for user: " + username));
     }
 }

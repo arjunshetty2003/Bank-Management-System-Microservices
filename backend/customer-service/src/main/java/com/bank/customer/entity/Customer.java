@@ -16,6 +16,9 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long customerId;
 
+    @Column(unique = true)
+    private String username;  // Links to auth user
+
     @NotBlank(message = "Name is required")
     @Column(nullable = false)
     private String name;
@@ -32,4 +35,13 @@ public class Customer {
     @NotBlank(message = "Address is required")
     @Column(nullable = false)
     private String address;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private CustomerStatus status = CustomerStatus.ACTIVE;
+
+    public enum CustomerStatus {
+        ACTIVE, INACTIVE, SUSPENDED
+    }
 }

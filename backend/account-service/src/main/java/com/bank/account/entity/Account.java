@@ -37,6 +37,13 @@ public class Account {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AccountStatus status = AccountStatus.ACTIVE;
+
+    private LocalDateTime closedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -46,6 +53,9 @@ public class Account {
         if (accountNumber == null) {
             accountNumber = generateAccountNumber();
         }
+        if (status == null) {
+            status = AccountStatus.ACTIVE;
+        }
     }
 
     private String generateAccountNumber() {
@@ -54,5 +64,9 @@ public class Account {
 
     public enum AccountType {
         SAVINGS, CHECKING, CURRENT
+    }
+
+    public enum AccountStatus {
+        ACTIVE, CLOSED, FROZEN
     }
 }

@@ -1,0 +1,11 @@
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/dto/FullRegistrationRequest.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/dto/AuthRequest.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/config/WebClientConfig.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/entity/User.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/service/RegistrationService.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/security/SecurityConfig.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/controller/AuthController.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/AuthServiceApplication.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/security/JwtUtil.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/dto/AuthResponse.java
+/Users/arjun/Documents/Microservices/backend/auth-service/src/main/java/com/bank/auth/repository/UserRepository.java

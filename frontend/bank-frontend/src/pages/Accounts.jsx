@@ -61,14 +61,38 @@ function Accounts() {
     setEditingId(account.accountId);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure?')) return;
+  const handleClose = async (id) => {
+    if (!window.confirm('Are you sure you want to close this account? This action cannot be undone.')) return;
     try {
       await accountApi.delete(id);
-      setSuccess('Account deleted successfully');
+      setSuccess('Account closed successfully');
       loadAccounts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete failed');
+      setError(err.response?.data?.message || err.response?.data || 'Close failed. Make sure balance is zero.');
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    const account = accounts.find(a => a.accountId === id);
+    const messages = {
+      ACTIVE: 'reactivate',
+      FROZEN: 'freeze',
+      CLOSED: 'close'
+    };
+    
+    // Warn if trying to close account with balance
+    if (newStatus === 'CLOSED' && account && account.balance > 0) {
+      setError(`Cannot close account with balance of $${account.balance.toFixed(2)}. Please withdraw or transfer funds first.`);
+      return;
+    }
+    
+    if (!window.confirm(`Are you sure you want to ${messages[newStatus]} this account?`)) return;
+    try {
+      await accountApi.updateStatus(id, newStatus);
+      setSuccess(`Account ${messages[newStatus]}d successfully`);
+      loadAccounts();
+    } catch (err) {
+      setError(err.response?.data?.message || err.response?.data || 'Status update failed');
     }
   };
 
@@ -152,26 +176,58 @@ function Accounts() {
               <th>Customer</th>
               <th>Type</th>
               <th>Balance</th>
+              <th>Status</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {accounts.map((account) => (
-              <tr key={account.accountId}>
+              <tr key={account.accountId} style={{ opacity: account.status === 'CLOSED' ? 0.5 : 1 }}>
                 <td>{account.accountId}</td>
                 <td>{account.accountNumber}</td>
                 <td>{getCustomerName(account.customerId)}</td>
                 <td>{account.accountType}</td>
                 <td>${account.balance?.toFixed(2)}</td>
+                <td>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.85em',
+                    backgroundColor: account.status === 'ACTIVE' ? '#d4edda' : 
+                                    account.status === 'FROZEN' ? '#fff3cd' : '#f8d7da',
+                    color: account.status === 'ACTIVE' ? '#155724' : 
+                           account.status === 'FROZEN' ? '#856404' : '#721c24'
+                  }}>
+                    {account.status || 'ACTIVE'}
+                  </span>
+                </td>
                 <td>{new Date(account.createdAt).toLocaleDateString()}</td>
                 <td className="actions">
-                  <button className="btn btn-primary" onClick={() => handleEdit(account)}>
-                    Edit
-                  </button>
-                  <button className="btn btn-danger" onClick={() => handleDelete(account.accountId)}>
-                    Delete
-                  </button>
+                  <select
+                    value={account.status || 'ACTIVE'}
+                    onChange={(e) => handleStatusChange(account.accountId, e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      marginRight: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="FROZEN">Frozen</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
+                  {account.status !== 'CLOSED' && (
+                    <button className="btn btn-primary" onClick={() => handleEdit(account)}>
+                      Edit
+                    </button>
+                  )}
+                  {account.status === 'CLOSED' && account.closedAt && (
+                    <span style={{ color: '#666', fontSize: '0.85em' }}>
+                      {new Date(account.closedAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

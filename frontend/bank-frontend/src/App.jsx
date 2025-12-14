@@ -3,25 +3,36 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Customers from './pages/Customers';
 import Accounts from './pages/Accounts';
 import Transactions from './pages/Transactions';
+import UserDashboard from './pages/UserDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
-function ProtectedRoute({ children }) {
-  const { token } = useAuth();
-  return token ? children : <Navigate to="/login" />;
+function ProtectedRoute({ children, adminOnly = false }) {
+  const { token, user } = useAuth();
+  
+  if (!token) return <Navigate to="/login" />;
+  if (adminOnly && user?.role !== 'ADMIN') return <Navigate to="/" />;
+  
+  return children;
 }
 
 function NavBar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   if (!user) return null;
 
   return (
     <nav>
       <ul>
-        <li><Link to="/">Customers</Link></li>
-        <li><Link to="/accounts">Accounts</Link></li>
-        <li><Link to="/transactions">Transactions</Link></li>
+        {isAdmin() ? (
+          <>
+            <li><Link to="/">Customers</Link></li>
+            <li><Link to="/accounts">Accounts</Link></li>
+            <li><Link to="/transactions">Transactions</Link></li>
+          </>
+        ) : (
+          <li><Link to="/">My Dashboard</Link></li>
+        )}
         <li style={{ marginLeft: 'auto' }}>
           <span style={{ marginRight: '15px' }}>
             {user.username} ({user.role})
@@ -35,6 +46,15 @@ function NavBar() {
   );
 }
 
+function HomePage() {
+  const { user } = useAuth();
+  
+  if (user?.role === 'ADMIN') {
+    return <Customers />;
+  }
+  return <UserDashboard />;
+}
+
 function AppContent() {
   return (
     <Router>
@@ -43,9 +63,9 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-          <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
-          <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/accounts" element={<ProtectedRoute adminOnly><Accounts /></ProtectedRoute>} />
+          <Route path="/transactions" element={<ProtectedRoute adminOnly><Transactions /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

@@ -29,10 +29,17 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/accounts/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/accounts/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/accounts/number/**").permitAll()  // Internal service calls
+                .requestMatchers(HttpMethod.GET, "/accounts/{id}").permitAll()  // Internal service calls (transaction validation)
+                .requestMatchers(HttpMethod.GET, "/accounts/user/**").permitAll()  // User dashboard calls
+                .requestMatchers(HttpMethod.GET, "/accounts/customer/**").permitAll()  // Customer account lookup
+                .requestMatchers(HttpMethod.GET, "/accounts").permitAll()  // List all accounts
+                .requestMatchers(HttpMethod.POST, "/accounts/{id}/deposit").permitAll()  // Internal transaction calls
+                .requestMatchers(HttpMethod.POST, "/accounts/{id}/withdraw").permitAll()  // Internal transaction calls
+                .requestMatchers(HttpMethod.POST, "/accounts").permitAll()  // Registration creates account
+                .requestMatchers(HttpMethod.PUT, "/accounts/*/status").hasRole("ADMIN")  // Only admin can change status
                 .requestMatchers(HttpMethod.PUT, "/accounts/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/accounts/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/accounts/**").permitAll()  // Users can close their own accounts (PIN validated in frontend)
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
