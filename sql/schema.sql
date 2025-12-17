@@ -17,8 +17,8 @@ CREATE TABLE users (
 
 -- Default users (passwords are BCrypt hashed: admin123, user123)
 INSERT INTO users (username, password, role) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqQb9tLqnvaNK7GHnYGJfIXNova2.', 'ADMIN'),
-('user', '$2a$10$8K1p/a0dL1LXMIgoEDFrwOfMQbLgtnOoKsWc/XGKHYePtLzqaC3Hy', 'USER');
+('admin', '$2a$10$EqKcp1WFKVQISheBxkV.qOXEhRPvPMio/qkYHX7aGhgfvpxdPCxLi', 'ADMIN'),
+('user', '$2a$10$dP2XLvD3VpXa5MmKfboxYuPBfDqNc8zA8SGU.FMb9dC5xVdKPKGnG', 'USER');
 
 -- Customer Service Schema (customer_db)
 \c customer_db;

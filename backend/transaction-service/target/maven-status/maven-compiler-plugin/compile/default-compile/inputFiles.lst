@@ -7,6 +7,7 @@
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/security/JwtAuthFilter.java
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/security/JwtUtil.java
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/entity/Transaction.java
+/Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/dto/CustomerDto.java
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/exception/AccountNotFoundException.java
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/dto/AccountDto.java
 /Users/arjun/Documents/Microservices/backend/transaction-service/src/main/java/com/bank/transaction/dto/WithdrawRequest.java

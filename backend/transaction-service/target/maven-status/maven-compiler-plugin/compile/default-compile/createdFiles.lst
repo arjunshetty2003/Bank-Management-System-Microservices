@@ -8,6 +8,7 @@ com/bank/transaction/controller/TransactionController.class
 com/bank/transaction/TransactionServiceApplication.class
 com/bank/transaction/entity/Transaction$TransactionType.class
 com/bank/transaction/exception/GlobalExceptionHandler.class
+com/bank/transaction/dto/CustomerDto.class
 com/bank/transaction/dto/WithdrawRequest.class
 com/bank/transaction/dto/DepositRequest.class
 com/bank/transaction/dto/TransferRequest.class

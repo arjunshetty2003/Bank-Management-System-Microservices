@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { accountApi, transactionApi, authApi } from '../api/api';
+import { accountApi, transactionApi, authApi, customerApi } from '../api/api';
 import { useAuth } from '../context/AuthContext';
 
 function UserDashboard() {
@@ -14,12 +14,25 @@ function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [showNewAccount, setShowNewAccount] = useState(false);
   const [newAccountType, setNewAccountType] = useState('SAVINGS');
+  const [customerStatus, setCustomerStatus] = useState('ACTIVE');
 
   useEffect(() => {
     if (user?.username) {
       loadMyAccounts();
+      loadCustomerStatus();
     }
   }, [user]);
+
+  const loadCustomerStatus = async () => {
+    try {
+      const response = await customerApi.getByUsername(user.username);
+      setCustomerStatus(response.data?.status || 'ACTIVE');
+    } catch (err) {
+      console.error('Failed to load customer status');
+    }
+  };
+
+  const isCustomerBlocked = customerStatus === 'SUSPENDED' || customerStatus === 'INACTIVE';
 
   useEffect(() => {
     if (selectedAccount) {
@@ -195,6 +208,24 @@ function UserDashboard() {
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success}</div>}
 
+      {isCustomerBlocked && (
+        <div style={{ 
+          backgroundColor: customerStatus === 'SUSPENDED' ? '#fff3cd' : '#f8d7da', 
+          border: `1px solid ${customerStatus === 'SUSPENDED' ? '#ffc107' : '#f5c6cb'}`, 
+          padding: '15px', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          color: customerStatus === 'SUSPENDED' ? '#856404' : '#721c24'
+        }}>
+          <strong>⚠️ Your account is {customerStatus.toLowerCase()}.</strong>
+          <p style={{ margin: '5px 0 0 0' }}>
+            {customerStatus === 'SUSPENDED' 
+              ? 'All transactions are disabled. Please contact customer support for assistance.'
+              : 'Your account has been deactivated. Please contact customer support.'}
+          </p>
+        </div>
+      )}
+
       {/* Account Summary */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -284,24 +315,24 @@ function UserDashboard() {
               <button
                 className={`btn ${activeTab === 'deposit' ? 'btn-primary' : ''}`}
                 onClick={() => setActiveTab('deposit')}
-                disabled={selectedAccount.status === 'FROZEN'}
-                style={{ opacity: selectedAccount.status === 'FROZEN' ? 0.5 : 1 }}
+                disabled={selectedAccount.status === 'FROZEN' || isCustomerBlocked}
+                style={{ opacity: (selectedAccount.status === 'FROZEN' || isCustomerBlocked) ? 0.5 : 1 }}
               >
                 Deposit
               </button>
               <button
                 className={`btn ${activeTab === 'withdraw' ? 'btn-primary' : ''}`}
                 onClick={() => setActiveTab('withdraw')}
-                disabled={selectedAccount.status === 'FROZEN'}
-                style={{ opacity: selectedAccount.status === 'FROZEN' ? 0.5 : 1 }}
+                disabled={selectedAccount.status === 'FROZEN' || isCustomerBlocked}
+                style={{ opacity: (selectedAccount.status === 'FROZEN' || isCustomerBlocked) ? 0.5 : 1 }}
               >
                 Withdraw
               </button>
               <button
                 className={`btn ${activeTab === 'transfer' ? 'btn-primary' : ''}`}
                 onClick={() => setActiveTab('transfer')}
-                disabled={selectedAccount.status === 'FROZEN'}
-                style={{ opacity: selectedAccount.status === 'FROZEN' ? 0.5 : 1 }}
+                disabled={selectedAccount.status === 'FROZEN' || isCustomerBlocked}
+                style={{ opacity: (selectedAccount.status === 'FROZEN' || isCustomerBlocked) ? 0.5 : 1 }}
               >
                 Transfer
               </button>

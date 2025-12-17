@@ -1,6 +1,7 @@
 package com.bank.transaction.service;
 
 import com.bank.transaction.dto.AccountDto;
+import com.bank.transaction.dto.CustomerDto;
 import com.bank.transaction.dto.DepositRequest;
 import com.bank.transaction.dto.TransferByAccountNumberRequest;
 import com.bank.transaction.dto.TransferRequest;
@@ -27,10 +28,12 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final WebClient accountServiceWebClient;
     private final WebClient authServiceWebClient;
+    private final WebClient customerServiceWebClient;
 
     public Transaction deposit(DepositRequest request) {
         AccountDto account = getAccount(request.getAccountId());
         validateAccountStatus(account);
+        validateCustomerStatus(account.getCustomerId());
         
         updateAccountBalance(request.getAccountId(), request.getAmount(), true);
         
@@ -50,6 +53,7 @@ public class TransactionService {
         
         AccountDto account = getAccount(request.getAccountId());
         validateAccountStatus(account);
+        validateCustomerStatus(account.getCustomerId());
         
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for withdrawal");
@@ -76,6 +80,8 @@ public class TransactionService {
         AccountDto toAccount = getAccount(request.getToAccountId());
         validateAccountStatus(fromAccount);
         validateAccountStatus(toAccount);
+        validateCustomerStatus(fromAccount.getCustomerId());
+        validateCustomerStatus(toAccount.getCustomerId());
         
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for transfer");
@@ -103,6 +109,8 @@ public class TransactionService {
         AccountDto toAccount = getAccountByNumber(request.getToAccountNumber());
         validateAccountStatus(fromAccount);
         validateAccountStatus(toAccount);
+        validateCustomerStatus(fromAccount.getCustomerId());
+        validateCustomerStatus(toAccount.getCustomerId());
         
         if (fromAccount.getAccountId().equals(toAccount.getAccountId())) {
             throw new IllegalArgumentException("Cannot transfer to the same account");
@@ -189,5 +197,28 @@ public class TransactionService {
         if ("CLOSED".equalsIgnoreCase(account.getStatus())) {
             throw new IllegalStateException("Account " + account.getAccountNumber() + " is closed. Transactions are not allowed.");
         }
+    }
+
+    private void validateCustomerStatus(Long customerId) {
+        CustomerDto customer = getCustomer(customerId);
+        if (customer.getStatus() == null) {
+            return; // Assume active if status not set
+        }
+        if ("SUSPENDED".equalsIgnoreCase(customer.getStatus())) {
+            throw new IllegalStateException("Customer account is suspended. Transactions are not allowed.");
+        }
+        if ("INACTIVE".equalsIgnoreCase(customer.getStatus())) {
+            throw new IllegalStateException("Customer account is inactive. Transactions are not allowed.");
+        }
+    }
+
+    private CustomerDto getCustomer(Long customerId) {
+        return customerServiceWebClient.get()
+                .uri("/customers/{id}", customerId)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                    response -> Mono.error(new RuntimeException("Customer not found with id: " + customerId)))
+                .bodyToMono(CustomerDto.class)
+                .block();
     }
 }
